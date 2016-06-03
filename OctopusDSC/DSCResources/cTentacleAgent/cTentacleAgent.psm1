@@ -206,6 +206,13 @@ function Request-File
     )
  
     Write-Verbose "Downloading $url to $saveAs"
+    [System.Net.ServicePointManager]::Expect100Continue = $true;
+    [System.Net.ServicePointManager]::SecurityProtocol = `
+        [System.Net.SecurityProtocolType]::Ssl3 -bor `
+        [System.Net.SecurityProtocolType]::Tls -bor `
+        [System.Net.SecurityProtocolType]::Tls11 -bor `
+        [System.Net.SecurityProtocolType]::Tls12
+        
     $downloader = new-object System.Net.WebClient
     $downloader.DownloadFile($url, $saveAs)
 }
@@ -223,13 +230,13 @@ function Invoke-AndAssert {
 # After the Tentacle is registered with Octopus, Tentacle listens on a TCP port, and Octopus connects to it. The Octopus server
 # needs to know the public IP address to use to connect to this Tentacle instance. Is there a way in Windows Azure in which we can 
 # know the public IP/host name of the current machine?
-function Get-MyPublicIPAddress
+function Get-MyLocalIPAddress
 {
-    Write-Verbose "Getting public IP address"
+    Write-Verbose "Getting local IP address"
 
     try
     {
-        $ip = Invoke-RestMethod -Uri https://api.ipify.org
+        $ip = (get-netadapter | get-netipaddress | ? addressfamily -eq 'IPv4').ipaddress.ToString()
     }
     catch
     {
@@ -256,6 +263,13 @@ function New-Tentacle
         [string]$tentacleDownloadUrl = "http://octopusdeploy.com/downloads/latest/OctopusTentacle",
         [string]$tentacleDownloadUrl64 = "http://octopusdeploy.com/downloads/latest/OctopusTentacle64"
     )
+
+    if($tentacleDownloadUrl -eq "") {
+        $tentacleDownloadUrl = "http://octopusdeploy.com/downloads/latest/OctopusTentacle"
+    }
+    if($tentacleDownloadUrl64 -eq "") {
+        $tentacleDownloadUrl64 = "http://octopusdeploy.com/downloads/latest/OctopusTentacle64"
+    }
  
     if ($port -eq 0) 
     {
@@ -299,7 +313,7 @@ function New-Tentacle
         Write-Verbose "Windows Firewall Service is not running... skipping firewall rule addition"
     }
         
-    $ipAddress = Get-MyPublicIPAddress
+    $ipAddress = Get-MyLocalIPAddress
     $ipAddress = $ipAddress.Trim()
  
     Write-Verbose "Public IP address: $ipAddress"
