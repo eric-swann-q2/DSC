@@ -1,8 +1,7 @@
-Configuration IISMinimal
+Configuration ConfigureHost
 {
-  param ("localhost")
-
-  Node $MachineName
+  Import-DscResource -Module cChoco 
+  Node "localhost"
   {
     #Install the IIS Role
     WindowsFeature IIS
@@ -15,6 +14,11 @@ Configuration IISMinimal
     {
       Ensure = "Present"
       Name = "Web-Mgmt-Console"
+    }
+
+    cChocoInstaller installChoco
+    {
+      InstallDir = "c:\ProgramData\chocolatey"
     }
   }
 } 
